@@ -1,118 +1,151 @@
 /*
- Fading
+  Fading
 
- This example shows how to fade an LED using the analogWrite() function.
+  This example shows how to fade an LED using the analogWrite() function.
 
- The circuit:
- * LED attached from digital pin 9 to ground.
+  The circuit:
+   LED attached from digital pin 9 to ground.
 
- Created 1 Nov 2008
- By David A. Mellis
- modified 30 Aug 2011
- By Tom Igoe
+  Created 1 Nov 2008
+  By David A. Mellis
+  modified 30 Aug 2011
+  By Tom Igoe
 
- http://www.arduino.cc/en/Tutorial/Fading
+  http://www.arduino.cc/en/Tutorial/Fading
 
- This example code is in the public domain.
-
- */
-
-/*
-  DTMF.cpp - TEST code for DTMF library
-
-  
-DTMF  Arduino
-Q1  12
-Q2  11
-Q3  10
-Q4  9
-STD 8
-SPK2  3
-SPK1  2
+  This example code is in the public domain.
 
 */
 
-#include "dtmf.h"
+byte DTMFread; 
+const int STQ = 3;        // Attach DTMF Module STQ Pin to Arduino Digital Pin 3
+const int Q4 = 4;        // Attach DTMF Module Q4  Pin to Arduino Digital Pin 4
+const int Q3 = 5;        // Attach DTMF Module Q3  Pin to Arduino Digital Pin 5
+const int Q2 = 6;        // Attach DTMF Module Q2  Pin to Arduino Digital Pin 6
+const int Q1 = 7;        // Attach DTMF Module Q1  Pin to Arduino Digital Pin 7
 
-DTMF dtmf; // default set to DFRobot DTMF board pins, Speaker pins
 
+
+/*=========================================================================================================
+  loop() : Arduino will interpret the DTMF module output and position the Servo accordingly
+  ========================================================================================================== */
 // Setear contraseña
-const int D1 = 2;
-const int D2 = 2;
-const int D3 = 1;
-const int D4 = 2;
+int D1 = 2;
+int D2 = 2;
+int D3 = 1;
+int D4 = 2;
 
 // Definir pin de Fade
-#define FadePin 5  
+#define FadePin 9
 
 void setup()
 {
- Serial.begin(9600);
+  Serial.begin(9600);
+
+  pinMode(STQ, INPUT);
+  pinMode(Q4, INPUT);
+  pinMode(Q3, INPUT);
+  pinMode(Q2, INPUT);
+  pinMode(Q1, INPUT);
 }
 
 void loop()
 {
-int myDtmf;
-if (Tonos()){
-  if (Autenticacion()){
-    FadeIn();
-    while(true){
-      myDtmf = dtmf.getDTMF();
-      if(myDtmf == 9) FadeOut; break; // Detectar cuando se corta la llamada
-      delay(80);
-    }  
-  }
-}
-    
+  int myDtmf;
+  //if (Tonos()) {
+    Serial.println("Auntenticando ...");
+    if (Autenticacion()) {
+      FadeIn();
+      Serial.println("Para salir presione 0 ");
+      while (true) {
+        myDtmf = NumInst();
+        if (myDtmf == 10) Serial.println(myDtmf); FadeOut(); break; // Detectar cuando se corta la llamada
+      }
+    }
+  //}
+
 }
 
-  
-  // Play a default number with all possibilities
-  //dtmf.playDTMF();
-  
-  // Read DTMF codes one by one and print it on Serial
-  /*int myDtmf;
+int NumInst() {
+  int detec = 0;
+  while (true) {
+    if (digitalRead(STQ) == HIGH) {   //When a DTMF tone is detected, STQ will read HIGH for the duration of the tone.
+      DTMFread = 0; detec = 1;
+      if (digitalRead(Q1) == HIGH) {  //If Q1 reads HIGH, then add 1 to the DTMFread variable
+        DTMFread = DTMFread + 1;
+      }
+      if (digitalRead(Q2) == HIGH) {  //If Q2 reads HIGH, then add 2 to the DTMFread variable
+        DTMFread = DTMFread + 2;
+      }
+      if (digitalRead(Q3) == HIGH) {  //If Q3 reads HIGH, then add 4 to the DTMFread variable
+        DTMFread = DTMFread + 4;
+      }
+      if (digitalRead(Q4) == HIGH) {  //If Q4 reads HIGH, then add 8 to the DTMFread variable
+        DTMFread = DTMFread + 8;
+      }   //Set the servoPosition varaible to the combined total of all the Q1 to Q4 readings. Multiply by 8.5 to amplify the servo rotation.
+    }
+    if(detec==1){
+      while(true){
+        if (digitalRead(STQ) == LOW){ 
+        detec=0;
+        break;
+        }
+      }
+      break;
+    }
+  }
+  return DTMFread;
+}
+
+
+// Play a default number with all possibilities
+//dtmf.playDTMF();
+
+// Read DTMF codes one by one and print it on Serial
+/*int myDtmf;
   myDtmf = dtmf.getDTMF();
   if(myDtmf != -1) Serial.println(myDtmf);
   delay(80); // to avoid getting repeated output.*/
 
 
-boolean Tonos(){ //
-int rep = 0;
-int outDTMF;
-int m=0;
+boolean Tonos() { //
+  int rep = 0;
+  int outDTMF;
+  int m = 0;
 
-while(true){
-outDTMF = dtmf.getDTMF();  
-if(outDTMF == 0) ++rep; // Detectar Ring
-if(outDTMF == -1) return false; break; // Detectar Silencio
-if(rep == 5) return true; break; 
-delay(80);
+  while (true) {
+   // outDTMF = dtmf.getDTMF();
+    if (outDTMF == 0) ++rep; // Detectar Ring
+    if (outDTMF == -1) return false; break; // Detectar Silencio
+    if (rep == 5) return true; break;
+    delay(80);
+  }
 }
-}
 
-boolean Autenticacion(){
-int exito=0;
-int outDtmf;
+boolean Autenticacion() {
+  int exito = 0;
+  int outDtmf;
 
-outDtmf = dtmf.getDTMF();  
-if(outDtmf == D1) ++exito;
-delay(80);
+  outDtmf = NumInst();
+  Serial.println(outDtmf);
+  if (outDtmf == D1) ++exito;
 
-outDtmf = dtmf.getDTMF();  
-if(outDtmf == D2) ++exito;
-delay(80);
+  outDtmf = NumInst();
+  Serial.println(outDtmf);
+  if (outDtmf == D2) ++exito;
 
-outDtmf = dtmf.getDTMF();  
-if(outDtmf == D3) ++exito;
-delay(80);
+  outDtmf = NumInst();
+  Serial.println(outDtmf);
+  if (outDtmf == D3) ++exito;
 
-outDtmf = dtmf.getDTMF();  
-if(outDtmf == D4) ++exito;
-delay(80);
 
-if(exito == 4) return true;
-else return false;
+  outDtmf = NumInst();
+  Serial.println(outDtmf);
+  if (outDtmf == D4) ++exito;
+
+
+  if (exito == 4) return true;
+  else return false;
 }
 
 void FadeIn()
